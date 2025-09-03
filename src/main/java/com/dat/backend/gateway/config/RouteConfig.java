@@ -8,6 +8,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 
 import java.net.URI;
 
+import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.fallbackHeaders;
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.uri;
 import static org.springframework.cloud.gateway.server.mvc.filter.CircuitBreakerFilterFunctions.circuitBreaker;
 import static org.springframework.cloud.gateway.server.mvc.filter.LoadBalancerFilterFunctions.lb;
@@ -36,7 +37,8 @@ public class RouteConfig {
                 .build()
                 .and(route("forward_route")
                         .route(path("/fallback/products"), http())
-                        .before(uri("http://localhost:8082/fallback/products"))
+                        .before(uri("http://localhost:8082/fallback/products")) // route to fallback service
+                        .before(fallbackHeaders()) // add fallback headers
                         .build());
     }
 }
