@@ -18,3 +18,7 @@ management:
   metrics:
     tags:
       application: gateway
+
+logging:
+  level:
+    org.springframework.cloud.gateway.server.mvc.filter.RetryFilterFunctions: DEBUG
