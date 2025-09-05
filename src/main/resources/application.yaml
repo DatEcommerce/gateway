@@ -8,7 +8,7 @@ server:
   port: 8080
 
 service:
-  product_uri: ${PRODUCT_SERVICE_URL:http://localhost:8081}
+  product_uri: ${PRODUCT_SERVICE_URI:http://localhost:8081}
 
 management:
   endpoints:
@@ -22,3 +22,25 @@ management:
 logging:
   level:
     org.springframework.cloud.gateway.server.mvc.filter.RetryFilterFunctions: DEBUG
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: false
+    fetch-registry: true
+    rest-template-timeout:
+      connect-timeout: 15000 # Max time to get TCP connection from eureka server
+      connect-request-timeout: 10000 # Time to wait for a new connection from the connection manager/pool
+      socket-timeout: 10000 # Max time waiting for data which send from client to eureka server
+    healthcheck:
+      enabled: true
+    refresh:
+      enable: false
+    prefer-same-zone-eureka: true
+  instance:
+    status-page-url-path: /info
+    health-check-url-path: /health
+    lease-renewal-interval-in-seconds: 10 # Heartbeat interval
+    metadata-map:
+      zone: zone-a

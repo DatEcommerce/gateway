@@ -14,6 +14,7 @@ import java.util.Set;
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.*;
 import static org.springframework.cloud.gateway.server.mvc.filter.Bucket4jFilterFunctions.rateLimit;
 import static org.springframework.cloud.gateway.server.mvc.filter.CircuitBreakerFilterFunctions.circuitBreaker;
+import static org.springframework.cloud.gateway.server.mvc.filter.LoadBalancerFilterFunctions.lb;
 import static org.springframework.cloud.gateway.server.mvc.filter.RetryFilterFunctions.retry;
 import static org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions.route;
 import static org.springframework.cloud.gateway.server.mvc.handler.HandlerFunctions.http;
@@ -37,17 +38,17 @@ public class RouteConfig {
                             .setFallbackUri(URI.create("forward:/fallback/products"))
                             .setStatusCodes("500", "404", "503");
                 }))
-                .filter(rateLimit(c->c
-                        .setCapacity(100)
-                        .setPeriod(Duration.ofMinutes(1))
-                        .setKeyResolver(request -> request.servletRequest().getUserPrincipal().getName())))
+//                .filter(rateLimit(c->c
+//                        .setCapacity(100)
+//                        .setPeriod(Duration.ofMinutes(1))
+//                        .setKeyResolver(request -> request.servletRequest().getUserPrincipal().getName())))
                 .filter(retry(c -> c
                         .setRetries(3)
                         .setSeries(Set.of(HttpStatus.Series.SERVER_ERROR))
 //                        .setExceptions(Set.of(AuthenticationException.class))
                         .setCacheBody(true)))
                 .filter(adaptCachedBody())
-//                .filter(lb("product-service"))
+                .filter(lb("product-service"))
                 .build()
                 .and(route("forward_route")
                         .route(path("/fallback/products"), http())
