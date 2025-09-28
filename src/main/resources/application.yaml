@@ -3,12 +3,31 @@ spring:
     name: gateway
   main:
     allow-bean-definition-overriding: true
-
+#      resourceserver:
+#        jwt:
+#          jwk-set-uri: http://localhost:8000/realms/dat-microservices/protocol/openid-connect/certs
+#      client:
+#        provider:
+#            keycloak:
+#                issuer-uri: http://localhost:8000/realms/dat-microservices
+#        registration:
+#          gateway:
+#            provider: keycloak
+#            client-id: gateway
+#            client-secret: ${KEYCLOAK_CLIENT_SECRET}
+#            authorization-grant-type: authorization_code
+#            scope: openid, profile, email
+#            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8000/realms/dat-microservices
 server:
   port: 8080
 
 service:
-  product_uri: ${PRODUCT_SERVICE_URI:http://localhost:8081}
+  product_uri: ${PRODUCT_SERVICE_URI:http://localhost:8082}
 
 management:
   endpoints:
@@ -23,24 +42,68 @@ logging:
   level:
     org.springframework.cloud.gateway.server.mvc.filter.RetryFilterFunctions: DEBUG
 
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-    register-with-eureka: false
-    fetch-registry: true
-    rest-template-timeout:
-      connect-timeout: 15000 # Max time to get TCP connection from eureka server
-      connect-request-timeout: 10000 # Time to wait for a new connection from the connection manager/pool
-      socket-timeout: 10000 # Max time waiting for data which send from client to eureka server
-    healthcheck:
-      enabled: true
-    refresh:
-      enable: false
-    prefer-same-zone-eureka: true
-  instance:
-    status-page-url-path: /info
-    health-check-url-path: /health
-    lease-renewal-interval-in-seconds: 10 # Heartbeat interval
-    metadata-map:
-      zone: zone-a
+#eureka:
+#  client:
+#    service-url:
+#      defaultZone: http://localhost:8761/eureka/
+#    register-with-eureka: false
+#    fetch-registry: true
+#    rest-template-timeout:
+#      connect-timeout: 15000 # Max time to get TCP connection from eureka server
+#      connect-request-timeout: 10000 # Time to wait for a new connection from the connection manager/pool
+#      socket-timeout: 10000 # Max time waiting for data which send from client to eureka server
+#    healthcheck:
+#      enabled: true
+#    refresh:
+#      enable: false
+#    prefer-same-zone-eureka: true
+#  instance:
+#    status-page-url-path: /info
+#    health-check-url-path: /health
+#    lease-renewal-interval-in-seconds: 10 # Heartbeat interval
+#    metadata-map:
+#      zone: zone-a
+
+#resilience4j:
+#  circuitbreaker:
+#    configs:
+#      default:
+#        register-health-indicator: true
+#        failure-rate-threshold: 100
+#        slow-call-rate-threshold: 80 # percentage of slow calls to trip the circuit
+#        slow-call-duration-threshold: 10000ms # duration above which calls are considered slow
+#        permitted-number-of-calls-in-half-open-state: 10
+#        max-wait-duration-in-half-open-state: 0s
+#        sliding-window-type: COUNT_BASED
+#        sliding-window-size: 100
+#        minimum-number-of-calls: 100
+#        wait-duration-in-open-state: 60000ms
+#        automatic-transition-from-open-to-half-open-enabled: false
+#      instanceA:
+#        base-config: default
+#        sliding-window-size: 50
+#        minimum-number-of-calls: 50
+#      instanceB:
+#        base-config: default
+#        wait-duration-in-open-state:
+#          seconds: 10s
+#  retry:
+#    configs:
+#      default:
+#        max-attempts: 3
+#        wait-duration:
+#          seconds: 2s
+#        enable-exponential-backoff: true
+#        retry-exceptions:
+#        ignore-exceptions:
+#    instances:
+#        instanceA:
+#            base-config: default
+#            max-attempts: 5
+#        instanceB:
+#            base-config: default
+#            wait-duration: 5s
+#  ratelimiter:
+#    configs:
+#      default:
+#        register-health-indicator: true

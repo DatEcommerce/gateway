@@ -6,6 +6,8 @@ target/
 
 work/**
 
+*.env
+
 ### STS ###
 .apt_generated
 .classpath

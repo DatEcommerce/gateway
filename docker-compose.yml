@@ -8,4 +8,17 @@ services:
       - "9411:9411"
     environment:
       - STORAGE_TYPE=mem
-    restart: always
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.7
+    container_name: keycload
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_FEATURES: token-exchange,admin-fine-grained-authz
+    ports:
+      - "8000:8080"
+    restart: unless-stopped
+    command:
+      - start-dev

@@ -9,4 +9,9 @@ public class FallBack {
     public String productFallBackMethod() {
         return "Fallback product service from gateway";
     }
+
+    @GetMapping("/user" )
+    public String user() {
+        return "user";
+    }
 }
