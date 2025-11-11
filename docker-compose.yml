@@ -1,24 +1,151 @@
-version: "3.8"
-
+version: '3.8'
 services:
-  zipkin:
-    image: openzipkin/zipkin
-    container_name: zipkin
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    hostname: zookeeper
+    container_name: zookeeper
     ports:
-      - "9411:9411"
+      - "2181:2181"
     environment:
-      - STORAGE_TYPE=mem
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: unless-stopped
+    networks:
+      - ecommerce-net
+
+  kafka1:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: kafka1
+    container_name: kafka1
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    restart: unless-stopped
+    networks:
+      - ecommerce-net
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    hostname: schema-registry
+    container_name: schema-registry
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka1:29092
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    restart: unless-stopped
+    volumes:
+      - schema-registry-data:/var/lib/schema-registry/data
+    depends_on:
+      - kafka1
+    networks:
+      - ecommerce-net
+
+  db:
+    image: mysql:8.0
+    container_name: user_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db_user
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      TZ: Asia/Ho_Chi_Minh
+    ports:
+      - "3307:3306"
+    command: [
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci",
+      "--default-authentication-plugin=mysql_native_password",
+      "--server-id=223344",             # Mỗi MySQL trong cụm CDC cần ID duy nhất
+      "--log-bin=mysql-bin",            # Bật binary log để Debezium đọc
+      "--binlog_format=ROW",            # Debezium yêu cầu ROW format
+      "--binlog_row_image=FULL",        # Ghi đầy đủ dữ liệu trước/sau
+      "--expire_logs_days=10",
+      "--gtid_mode=ON",
+      "--enforce_gtid_consistency=ON",
+      "--log-slave-updates=ON",
+      "--binlog_expire_logs_seconds=3600"
+    ]
+    volumes:
+      - db_data:/var/lib/mysql
     restart: unless-stopped
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:23.0.7
-    container_name: keycload
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_FEATURES: token-exchange,admin-fine-grained-authz
+  connect:
+    image: quay.io/debezium/connect:3.3
+    container_name: connect
+    hostname: connect
     ports:
-      - "8000:8080"
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka1:29092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_statuses
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      ENABLE_DEBEZIUM_SCRIPTING: "true"
+      # Cho phép Kafka Connect tự tạo các topic nếu chưa có
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: All
+    depends_on:
+      - kafka1
+      - db
     restart: unless-stopped
-    command:
-      - start-dev
+    networks:
+      - ecommerce-net
+    volumes:
+      - connect-data:/kafka/connect
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/var/lib/prometheus
+    ports:
+      - "8090:9090"
+    restart: unless-stopped
+    depends_on:
+      - kafka1
+    networks:
+      - ecommerce-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    networks:
+      - ecommerce-net
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+networks:
+  ecommerce-net:
+    driver: bridge
+
+volumes:
+  kafka-data:
+  schema-registry-data:
+  prometheus-data:
+  grafana-data:
+  mysql-data:
+  connect-data:
+  db_data:

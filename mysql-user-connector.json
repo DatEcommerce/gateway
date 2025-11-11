@@ -1,0 +1,22 @@
+{
+  "name": "mysql-user-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "tasks.max": "1",
+    "database.hostname": "user_db",
+    "database.port": "3306",
+    "database.user": "db_user",
+    "database.password": "password",
+    "database.server.id": "184054",
+    "topic.prefix": "userdb",
+    "database.include.list": "db_user",
+    "table.include.list": "db_user.users",
+    "schema.history.internal.kafka.bootstrap.servers": "kafka1:29092",
+    "schema.history.internal.kafka.topic": "schema-changes.db_user",
+    "include.schema.changes": "true",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false"
+  }
+}
